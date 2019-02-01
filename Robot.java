@@ -29,6 +29,8 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import org.usfirst.frc.team3465.robot.UsingEncoders;
 
 public class Robot extends TimedRobot {
+
+	int count = 0;
 	
 	TalonSRX m_rearRight = new TalonSRX(3);
 	TalonSRX m_frontRight = new TalonSRX(0);
@@ -42,17 +44,16 @@ public class Robot extends TimedRobot {
 	PWMTalonSRX m_frontLeft1 = new PWMTalonSRX(2);
 	PWMTalonSRX m_rearLeft1 = new PWMTalonSRX(3);*/
 	
-	PWMTalonSRX m_clawMotor = new PWMTalonSRX(4);
+	PWMTalonSRX m_clawMotor = new PWMTalonSRX(0);
 	
-	PWMTalonSRX m_armMotor = new PWMTalonSRX(5);
+	TalonSRX m_armMotor = new TalonSRX(4);
 
 	Encoder arm = new Encoder(0, 1, false, Encoder.EncodingType.k4X);
 	//Encoder claw = new Encoder(2,3, false, Encoder.EncodingType.k4X);
 
-
 	MecanumDrive m_mechDrive = new MecanumDrive(m_frontLeft, m_rearLeft, m_frontRight, m_rearRight);
 	private Timer m_timer = new Timer();
-	private Joystick m_stick1 = new Joystick(0);
+	private Joystick m_stick = new Joystick(0);
 
 	final int kTimeoutMs = 30;
 	
@@ -67,18 +68,22 @@ public class Robot extends TimedRobot {
 	
 	@Override
 	public void robotInit() {
-
 		m_rearRight.configFactoryDefault();
+		m_rearLeft.configFactoryDefault();
+		m_frontLeft.configFactoryDefault();
+		m_frontRight.configFactoryDefault();
+
+		m_rearRight.setSelectedSensorPosition(0);
 
 		/* Seed quadrature to be absolute and continuous */
 		initQuadrature();
 		/* Configure Selected Sensor for Talon */
-		m_rearRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute,	// Feedback
-											0, 											// PID ID
-											kTimeoutMs);								// Timeout
-
+		m_frontLeft.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);
+		m_frontRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);
+		m_rearLeft.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);
+		m_rearRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);	// Feedback
+		
 		applyDeadband();
-
 
 		new Thread(() -> {
          UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
@@ -98,13 +103,11 @@ public class Robot extends TimedRobot {
 	 }).start();
 	 
 	}
-
-
 	
-	
+
 	private void applyDeadband() {
 		m_clawMotor.enableDeadbandElimination(true);
-		m_armMotor.enableDeadbandElimination(true);	
+		//m_armMotor.enableDeadbandElimination(true);	
 		//m_rearLeft.enableDeadbandElimination(true);	
 	}
 	      
@@ -124,69 +127,123 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void teleopInit() {
-		
-
 	}
-
-	
 
 	@Override
 	public void teleopPeriodic() {
+
+		
+		double averageVelocity = EncodersVelocity.averageVelocity(m_frontLeft, m_frontRight, m_rearLeft, m_rearRight);
+		double frontLeftVelocity = EncodersVelocity.frontLeftVelocity(m_frontLeft);
+		double frontRightVelocity = EncodersVelocity.frontRightVelocity(m_frontRight);
+		double rearLeftVelocity = EncodersVelocity.rearLeftVelocity(m_rearLeft);
+		double rearRightVelocity = EncodersVelocity.rearRightVelocity(m_rearRight);
+
+		if(m_stick.getRawButton(3)){
+			//m_rearRight.setSelectedSensorPosition(0);
+			double selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
+			double degrees = 360;
+			double runToPosition = ToSensorUnits(degrees);
+			
+			m_rearRight.setSelectedSensorPosition(0);
+			
+			while(selSenPos <= runToPosition){
+				m_rearRight.set(ControlMode.PercentOutput, -.2);
+				selSenPos = m_rearRight.getSelectedSensorPosition();
+				DriverStation.reportError("Sensor Position  " + selSenPos, false);
+			}
+			m_rearRight.set(ControlMode.PercentOutput,0);
+			m_rearRight.setSelectedSensorPosition(0);
+		}
+				
+
+		if(m_stick.getRawButton(2)){
+			m_rearRight.setSelectedSensorPosition(0);
+			double selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
+			double degrees = -360;
+			double runToPosition = ToSensorUnits(degrees);
+			
+			m_rearRight.setSelectedSensorPosition(0);
+
+			while(selSenPos >= runToPosition){
+				m_rearRight.set(ControlMode.PercentOutput,.2);
+				selSenPos = m_rearRight.getSelectedSensorPosition();
+				DriverStation.reportError("Sensor Position  " + selSenPos, false);
+			}
+			
+			m_rearRight.set(ControlMode.PercentOutput,0);
+			m_rearRight.setSelectedSensorPosition(0);
+		}
+
+		
+
+		//double velocityright = m_rearRight.getSelectedSensorVelocity();
 		initQuadrature();
-		if(m_stick1.getRawButton(3)){
-			UsingEncoders.runToPosition(m_frontLeft, m_frontRight, m_rearLeft, m_rearRight, 36000);
+		
+		//UsingEncoders.runToPosition(m_rearRight, 360);
+
+		if(m_stick.getY() > 0 || m_stick.getX() > 0 || m_stick.getRawAxis(4) > 0){
+		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, 1);
 		}
 
-		if(m_stick1.getY() > 0 || m_stick1.getX() > 0|| m_stick1.getRawAxis(4) > 0){
-		m_mechDrive.fwbw(m_stick1.getX(), -m_stick1.getY(), m_stick1.getRawAxis(4),  0.0, 1, 0.8);
-		}
-
-		if(m_stick1.getY() < 0 || m_stick1.getX() < 0|| m_stick1.getRawAxis(4) < 0){
-		m_mechDrive.fwbw(m_stick1.getX(), -m_stick1.getY(), m_stick1.getRawAxis(4),  0.0, 1, 0.8);
+		if(m_stick.getY() < 0 || m_stick.getX() < 0 || m_stick.getRawAxis(4) < 0){
+		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, 1);
    		}
 
-		if (m_stick1.getRawButton(2)){
-		m_clawMotor.set(0.1);
+		if (m_stick.getRawButton(1)){
+			m_armMotor.set(ControlMode.PercentOutput, -1);
+		}else if (m_stick.getRawButton(4)){
+			m_armMotor.set(ControlMode.PercentOutput, 1);
 		}
 		else{
-			m_clawMotor.stopMotor();
-		}
-		if (m_stick1.getRawButton(1)){ //3
-		m_clawMotor.set(-0.1);
-		}
-		else{
-			m_clawMotor.stopMotor();
+			m_armMotor.set(ControlMode.PercentOutput, 0);
 		}
 
 		int selSenPos = m_rearRight.getSelectedSensorPosition(0);
-		int pulseWidthWithoutOverflows = m_rearRight.getSensorCollection().getPulseWidthPosition() & 0xFFF;
+		//int pulseWidthWithoutOverflows = m_rearRight.getSensorCollection().getPulseWidthPosition() & 0xFFF;
  				
 		/**
 		 * Display how we've adjusted PWM to produce a QUAD signal that is
 		 * absolute and continuous. Show in sensor units and in rotation
 		 * degrees.
 		 */
-		DriverStation.reportError("pulseWidPos:" + pulseWidthWithoutOverflows +
+		/*DriverStation.reportError("pulseWidPos:" + pulseWidthWithoutOverflows +
 						 "   =>    " + "selSenPos:" + selSenPos, false);
 		DriverStation.reportError("      ", false);
 		DriverStation.reportError("pulseWidDeg:" + ToDeg(pulseWidthWithoutOverflows) +
-						 "   =>    " + "selSenDeg:" + ToDeg(selSenPos), false);
+						 "   =>    " + "selSenDeg:" + ToDeg(selSenPos), false);*/
+						 
 		System.out.println();
-	}
+
+		DriverStation.reportError("selSenPos " + selSenPos, false);
+
+		//DriverStation.reportError("FL " + frontLeftVelocity + "            FR " + frontRightVelocity + "             RL " + rearLeftVelocity + "                 RR " + rearRightVelocity + "                   AVG " + averageVelocity, false);
+		}
 	
 	/**
 	 * @param units CTRE mag encoder sensor units 
 	 * @return degrees rounded to tenths.
 	 */
-	String ToDeg(int units) {
+	double ToDeg(int units) {
 		double deg = units * 360.0 / 4096.0;
 
 		/* truncate to 0.1 res */
 		deg *= 10;
-		deg = (int) deg;
+		deg = (double) deg;
 		deg /= 10;
 
-		return "" + deg;
+		return deg;
+	}
+
+	double ToSensorUnits(double deg){
+		double units = deg * 4096.0 / 360.0;
+
+		/* truncate to 0.1 res */
+		units *= 10;
+		units = (int) units;
+		units /= 10;
+
+		return units;
 	}
 
 	
