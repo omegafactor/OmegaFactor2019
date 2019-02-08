@@ -1,7 +1,7 @@
 package org.usfirst.frc.team3465.robot;
 
 import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.MotorSafety;
+//import edu.wpi.first.wpilibj.MotorSafety;
 import edu.wpi.first.wpilibj.PWMTalonSRX;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.cameraserver.CameraServer;
 
 import org.usfirst.frc.team3465.robot.MecanumDrive;
-import org.usfirst.frc.team3465.robot.magEncoder;
+//import org.usfirst.frc.team3465.robot.magEncoder;
 import org.opencv.core.Mat;
 //import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
@@ -21,30 +21,22 @@ import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.CvSource;
 import edu.wpi.cscore.UsbCamera;
 
-import com.ctre.phoenix.CTREJNIWrapper;
+
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 
-import org.usfirst.frc.team3465.robot.UsingEncoders;
+//import org.usfirst.frc.team3465.robot.UsingEncoders;
 
 public class Robot extends TimedRobot {
 
-	int count = 0;
-	
 	TalonSRX m_rearRight = new TalonSRX(3);
 	TalonSRX m_frontRight = new TalonSRX(0);
-	
 	TalonSRX m_frontLeft = new TalonSRX(1);
 	TalonSRX m_rearLeft = new TalonSRX(2);
 
-	/*PWMTalonSRX m_rearRight1 = new PWMTalonSRX(0);
-	PWMTalonSRX m_frontRight1 = new PWMTalonSRX(1);
-	
-	PWMTalonSRX m_frontLeft1 = new PWMTalonSRX(2);
-	PWMTalonSRX m_rearLeft1 = new PWMTalonSRX(3);*/
-	
 	PWMTalonSRX m_clawMotor = new PWMTalonSRX(0);
+	PWMTalonSRX m_rampMotor = new PWMTalonSRX(1);
 	
 	TalonSRX m_armMotor = new TalonSRX(4);
 
@@ -132,93 +124,97 @@ public class Robot extends TimedRobot {
 	@Override
 	public void teleopPeriodic() {
 
-		
-		double averageVelocity = EncodersVelocity.averageVelocity(m_frontLeft, m_frontRight, m_rearLeft, m_rearRight);
-		double frontLeftVelocity = EncodersVelocity.frontLeftVelocity(m_frontLeft);
-		double frontRightVelocity = EncodersVelocity.frontRightVelocity(m_frontRight);
-		double rearLeftVelocity = EncodersVelocity.rearLeftVelocity(m_rearLeft);
-		double rearRightVelocity = EncodersVelocity.rearRightVelocity(m_rearRight);
+		double selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
 
-		if(m_stick.getRawButton(3)){
-			//m_rearRight.setSelectedSensorPosition(0);
-			double selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
+		/*if(m_stick.getRawButton(3)){
+			m_rearRight.setSelectedSensorPosition(0);
+			selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
 			double degrees = 360;
 			double runToPosition = ToSensorUnits(degrees);
 			
-			m_rearRight.setSelectedSensorPosition(0);
-			
-			while(selSenPos <= runToPosition){
-				m_rearRight.set(ControlMode.PercentOutput, -.2);
+			while(selSenPos <= runToPosition - 1500){
+				m_rearRight.set(ControlMode.PercentOutput, -.5);
 				selSenPos = m_rearRight.getSelectedSensorPosition();
-				DriverStation.reportError("Sensor Position  " + selSenPos, false);
+			}
+			while(selSenPos <= runToPosition){
+				m_rearRight.set(ControlMode.PercentOutput, -.1);
+				selSenPos = m_rearRight.getSelectedSensorPosition();
 			}
 			m_rearRight.set(ControlMode.PercentOutput,0);
-			m_rearRight.setSelectedSensorPosition(0);
+			m_rearRight.setSelectedSensorPosition(0, 0, 10);
 		}
 				
-
 		if(m_stick.getRawButton(2)){
 			m_rearRight.setSelectedSensorPosition(0);
-			double selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
+			selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
 			double degrees = -360;
 			double runToPosition = ToSensorUnits(degrees);
 			
-			m_rearRight.setSelectedSensorPosition(0);
-
-			while(selSenPos >= runToPosition){
-				m_rearRight.set(ControlMode.PercentOutput,.2);
+			while(selSenPos >= runToPosition + 1500){
+				m_rearRight.set(ControlMode.PercentOutput,.5);
 				selSenPos = m_rearRight.getSelectedSensorPosition();
-				DriverStation.reportError("Sensor Position  " + selSenPos, false);
 			}
 			
+			while(selSenPos >= runToPosition){
+				m_rearRight.set(ControlMode.PercentOutput,.1);
+				selSenPos = m_rearRight.getSelectedSensorPosition();
+			}
+
 			m_rearRight.set(ControlMode.PercentOutput,0);
-			m_rearRight.setSelectedSensorPosition(0);
-		}
-
-		
-
-		//double velocityright = m_rearRight.getSelectedSensorVelocity();
-		initQuadrature();
-		
-		//UsingEncoders.runToPosition(m_rearRight, 360);
+			m_rearRight.setSelectedSensorPosition(0, 0, 10);
+		}*/
 
 		if(m_stick.getY() > 0 || m_stick.getX() > 0 || m_stick.getRawAxis(4) > 0){
-		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, 1);
+		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, .8);
 		}
 
 		if(m_stick.getY() < 0 || m_stick.getX() < 0 || m_stick.getRawAxis(4) < 0){
-		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, 1);
+		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, .8);
    		}
 
 		if (m_stick.getRawButton(1)){
-			m_armMotor.set(ControlMode.PercentOutput, -1);
+			m_armMotor.set(ControlMode.PercentOutput, -.8);
 		}else if (m_stick.getRawButton(4)){
-			m_armMotor.set(ControlMode.PercentOutput, 1);
+			m_armMotor.set(ControlMode.PercentOutput, .8);
 		}
 		else{
 			m_armMotor.set(ControlMode.PercentOutput, 0);
 		}
-
-		int selSenPos = m_rearRight.getSelectedSensorPosition(0);
-		//int pulseWidthWithoutOverflows = m_rearRight.getSensorCollection().getPulseWidthPosition() & 0xFFF;
- 				
-		/**
-		 * Display how we've adjusted PWM to produce a QUAD signal that is
-		 * absolute and continuous. Show in sensor units and in rotation
-		 * degrees.
-		 */
-		/*DriverStation.reportError("pulseWidPos:" + pulseWidthWithoutOverflows +
-						 "   =>    " + "selSenPos:" + selSenPos, false);
-		DriverStation.reportError("      ", false);
-		DriverStation.reportError("pulseWidDeg:" + ToDeg(pulseWidthWithoutOverflows) +
-						 "   =>    " + "selSenDeg:" + ToDeg(selSenPos), false);*/
-						 
-		System.out.println();
-
-		DriverStation.reportError("selSenPos " + selSenPos, false);
-
-		//DriverStation.reportError("FL " + frontLeftVelocity + "            FR " + frontRightVelocity + "             RL " + rearLeftVelocity + "                 RR " + rearRightVelocity + "                   AVG " + averageVelocity, false);
+		
+		if(m_stick.getPOV() == 90){
+			m_rampMotor.set(.1);
+		}else if (m_stick.getPOV() == 270){
+			m_rampMotor.set(-.1);
+		}else{
+			m_rampMotor.stopMotor();
 		}
+
+		/*if(m_stick.getRawButton(2)){
+			while(m_stick.getRawButton(3) == false){
+				m_clawMotor.set(-.1);
+			}
+			if(m_stick.getRawButton(3)){
+				m_clawMotor.set(.1);
+			}else{
+				m_clawMotor.stopMotor();
+			}
+		}else if(m_stick.getRawButton(3)){
+			m_clawMotor.set(.1);
+		}else{
+			m_clawMotor.set(0);
+		}*/
+
+		if(m_stick.getRawButton(2)){
+			m_clawMotor.set(-.1);
+		}else if(m_stick.getRawButton(3)){
+			m_clawMotor.set(.1);
+		}else{
+			m_clawMotor.set(0);
+		}
+
+		
+		//DriverStation.reportError("selSenPos " + selSenPos, false);
+	}
 	
 	/**
 	 * @param units CTRE mag encoder sensor units 
