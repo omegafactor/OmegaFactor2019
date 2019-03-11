@@ -1,7 +1,13 @@
-package org.usfirst.frc.team3465.robot;
+/*----------------------------------------------------------------------------*/
+/* Copyright (c) 2017-2018 FIRST. All Rights Reserved.                        */
+/* Open Source Software - may be modified and shared by FRC teams. The code   */
+/* must be accompanied by the FIRST BSD license file in the root directory of */
+/* the project.                                                               */
+/*----------------------------------------------------------------------------*/
+
+package frc.robot;
 
 import edu.wpi.first.wpilibj.Joystick;
-//import edu.wpi.first.wpilibj.MotorSafety;
 import edu.wpi.first.wpilibj.PWMTalonSRX;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -10,12 +16,9 @@ import edu.wpi.first.wpilibj.Encoder;
 
 import edu.wpi.first.cameraserver.CameraServer;
 
-import org.usfirst.frc.team3465.robot.MecanumDrive;
-//import org.usfirst.frc.team3465.robot.magEncoder;
+import frc.robot.MecanumDrive;
 import org.opencv.core.Mat;
-//import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
-//import org.opencv.imgcodecs.*;
 
 import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.CvSource;
@@ -36,18 +39,14 @@ public class Robot extends TimedRobot {
 	TalonSRX m_rearLeft = new TalonSRX(2);
 
 	PWMTalonSRX m_clawMotor = new PWMTalonSRX(0);
-	PWMTalonSRX m_rampMotor = new PWMTalonSRX(1);
 	
 	TalonSRX m_armMotor = new TalonSRX(4);
 
-	Encoder arm = new Encoder(0, 1, false, Encoder.EncodingType.k4X);
-	//Encoder claw = new Encoder(2,3, false, Encoder.EncodingType.k4X);
-
+	
 	MecanumDrive m_mechDrive = new MecanumDrive(m_frontLeft, m_rearLeft, m_frontRight, m_rearRight);
 	private Timer m_timer = new Timer();
-	private Joystick m_stick = new Joystick(0);
-
-	final int kTimeoutMs = 30;
+  private Joystick m_stick1 = new Joystick(0);
+  private Joystick m_stick2 = new Joystick(1);
 
 	@Override
 	public void robotInit() {
@@ -56,40 +55,21 @@ public class Robot extends TimedRobot {
 		m_frontLeft.configFactoryDefault();
 		m_frontRight.configFactoryDefault();
 
-		m_rearRight.setSelectedSensorPosition(0);
-
-		
-		/* Configure Selected Sensor for Talon */
-		m_frontLeft.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);
-		m_frontRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);
-		m_rearLeft.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);
-		m_rearRight.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, kTimeoutMs);
-		
 		applyDeadband();
 
-		new Thread(() -> {
-         UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-         camera.setResolution(640, 480);
-         
-         CvSink cvSink = CameraServer.getInstance().getVideo();
-         CvSource outputStream = CameraServer.getInstance().putVideo("Blur", 640, 480);
-         
-         Mat source = new Mat();
-         Mat output = new Mat();
-         
-         while(!Thread.interrupted()) {
-             cvSink.grabFrame(source);
-             Imgproc.cvtColor(source, output, Imgproc.COLOR_BGR2GRAY);
-             outputStream.putFrame(output);
-         }
-	 }).start();
+        
+    
+    UsbCamera camera1 = CameraServer.getInstance().startAutomaticCapture();
+    camera1.setResolution(640, 480);
+        
+    UsbCamera camera2 = CameraServer.getInstance().startAutomaticCapture();
+    camera2.setResolution(640, 480);
 	 
 	}
 	
 
 	private void applyDeadband() {
 		m_clawMotor.enableDeadbandElimination(true);
-		m_rampMotor.enableDeadbandElimination(true);	
 	}
 	      
 
@@ -103,6 +83,31 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void autonomousPeriodic() {
+		if(m_stick1.getY() > 0 || m_stick1.getX() > 0 || m_stick1.getRawAxis(4) > 0){
+			m_mechDrive.fwbw(m_stick1.getX(), -m_stick1.getY(), m_stick1.getRawAxis(4),  0.0, 1, .8);
+			}
+	
+			if(m_stick1.getY() < 0 || m_stick1.getX() < 0 || m_stick1.getRawAxis(4) < 0){
+			m_mechDrive.fwbw(m_stick1.getX(), -m_stick1.getY(), m_stick1.getRawAxis(4),  0.0, 1, .8);
+				 }
+	
+			if (m_stick2.getRawButton(1)){
+				m_armMotor.set(ControlMode.PercentOutput, -1);
+			}else if (m_stick2.getRawButton(4)){
+				m_armMotor.set(ControlMode.PercentOutput, 1);
+			}
+			else{
+				m_armMotor.set(ControlMode.PercentOutput, 0);
+			}
+			
+	
+			if(m_stick2.getRawButton(5)){
+				m_clawMotor.set(-.3);
+			}else if(m_stick2.getRawButton(6)){
+				m_clawMotor.set(.45);
+			}else{
+				m_clawMotor.set(0);
+			}
 	}
 	
 
@@ -113,123 +118,37 @@ public class Robot extends TimedRobot {
 	@Override
 	public void teleopPeriodic() {
 
-		double selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
-
-		/*if(m_stick.getRawButton(3)){
-			m_rearRight.setSelectedSensorPosition(0);
-			selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
-			double degrees = 360;
-			double runToPosition = ToSensorUnits(degrees);
-			
-			while(selSenPos <= runToPosition - 1500){
-				m_rearRight.set(ControlMode.PercentOutput, -.5);
-				selSenPos = m_rearRight.getSelectedSensorPosition();
-			}
-			while(selSenPos <= runToPosition){
-				m_rearRight.set(ControlMode.PercentOutput, -.1);
-				selSenPos = m_rearRight.getSelectedSensorPosition();
-			}
-			m_rearRight.set(ControlMode.PercentOutput,0);
-			m_rearRight.setSelectedSensorPosition(0, 0, 10);
-		}
-				
-		if(m_stick.getRawButton(2)){
-			m_rearRight.setSelectedSensorPosition(0);
-			selSenPos = ToDeg(m_rearRight.getSelectedSensorPosition());
-			double degrees = -360;
-			double runToPosition = ToSensorUnits(degrees);
-			
-			while(selSenPos >= runToPosition + 1500){
-				m_rearRight.set(ControlMode.PercentOutput,.5);
-				selSenPos = m_rearRight.getSelectedSensorPosition();
-			}
-			
-			while(selSenPos >= runToPosition){
-				m_rearRight.set(ControlMode.PercentOutput,.1);
-				selSenPos = m_rearRight.getSelectedSensorPosition();
-			}
-
-			m_rearRight.set(ControlMode.PercentOutput,0);
-			m_rearRight.setSelectedSensorPosition(0, 0, 10);
-		}*/
-
-		if(m_stick.getY() > 0 || m_stick.getX() > 0 || m_stick.getRawAxis(4) > 0){
-		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, .8);
+	
+		if(m_stick1.getY() > 0 || m_stick1.getX() > 0 || m_stick1.getRawAxis(4) > 0){
+		m_mechDrive.fwbw(m_stick1.getX(), -m_stick1.getY(), m_stick1.getRawAxis(4),  0.0, 1, .8);
 		}
 
-		if(m_stick.getY() < 0 || m_stick.getX() < 0 || m_stick.getRawAxis(4) < 0){
-		m_mechDrive.fwbw(m_stick.getX(), -m_stick.getY(), m_stick.getRawAxis(4),  0.0, 1, .8);
+		if(m_stick1.getY() < 0 || m_stick1.getX() < 0 || m_stick1.getRawAxis(4) < 0){
+		m_mechDrive.fwbw(m_stick1.getX(), -m_stick1.getY(), m_stick1.getRawAxis(4),  0.0, 1, .8);
    		}
 
-		if (m_stick.getRawButton(1)){
-			m_armMotor.set(ControlMode.PercentOutput, -.8);
-		}else if (m_stick.getRawButton(4)){
-			m_armMotor.set(ControlMode.PercentOutput, .8);
+		if (m_stick2.getRawButton(1)){
+			m_armMotor.set(ControlMode.PercentOutput, -1);
+		}else if (m_stick2.getRawButton(4)){
+			m_armMotor.set(ControlMode.PercentOutput, 1);
 		}
 		else{
 			m_armMotor.set(ControlMode.PercentOutput, 0);
 		}
 		
-		if(m_stick.getPOV() == 90){
-			m_rampMotor.set(.1);
-		}else if (m_stick.getPOV() == 270){
-			m_rampMotor.set(-.1);
-		}else{
-			m_rampMotor.stopMotor();
-		}
 
-		/*if(m_stick.getRawButton(2)){
-			while(m_stick.getRawButton(3) == false){
-				m_clawMotor.set(-.1);
-			}
-			if(m_stick.getRawButton(3)){
-				m_clawMotor.set(.1);
-			}else{
-				m_clawMotor.stopMotor();
-			}
-		}else if(m_stick.getRawButton(3)){
-			m_clawMotor.set(.1);
-		}else{
-			m_clawMotor.set(0);
-		}*/
-
-		if(m_stick.getRawButton(2)){
-			m_clawMotor.set(-.1);
-		}else if(m_stick.getRawButton(3)){
-			m_clawMotor.set(.1);
+		if(m_stick2.getRawButton(5)){
+			m_clawMotor.set(-.3);
+		}else if(m_stick2.getRawButton(6)){
+			m_clawMotor.set(.3);
 		}else{
 			m_clawMotor.set(0);
 		}
 
 		
-		//DriverStation.reportError("selSenPos " + selSenPos, false);
+		
 	}
 	
-	/**
-	 * @param units CTRE mag encoder sensor units 
-	 * @return degrees rounded to tenths.
-	 */
-	double ToDeg(int units) {
-		double deg = units * 360.0 / 4096.0;
-
-		/* truncate to 0.1 res */
-		deg *= 10;
-		deg = (double) deg;
-		deg /= 10;
-
-		return deg;
-	}
-
-	double ToSensorUnits(double deg){
-		double units = deg * 4096.0 / 360.0;
-
-		/* truncate to 0.1 res */
-		units *= 10;
-		units = (int) units;
-		units /= 10;
-
-		return units;
-	}
 
 	@Override
 	public void testPeriodic() {
